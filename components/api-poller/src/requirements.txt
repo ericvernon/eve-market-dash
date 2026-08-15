@@ -1,0 +1,6 @@
+polars
+requests
+responses
+time-machine
+pytest
+python-dateutil

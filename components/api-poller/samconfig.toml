@@ -1,0 +1,15 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "eve-market-api-poller"
+resolve_s3 = true
+s3_prefix = "eve-market-api-poller"
+region = "ap-northeast-1"
+profile = "sandbox-admin"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "BronzeBucketName=\"/eve-market/infra/bronze-bucket-name\""
+image_repositories = []
+
+[default.global.parameters]
+region = "ap-northeast-1"

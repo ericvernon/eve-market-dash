@@ -6,9 +6,10 @@ import time_machine
 from dateutil.tz import tzutc
 from polars.testing import assert_frame_equal
 
-from src.app import poll_headers, poll_order_book, download_orders
+from src.app import poll_headers, poll_order_book, lambda_handler
 import responses
 import polars as pl
+from unittest.mock import patch, MagicMock
 
 REGION_ID = '20241027'
 BASE_URL = f'https://esi.evetech.net/markets/{REGION_ID}/orders'
@@ -191,12 +192,25 @@ def test_poll_order_book():
     )
     assert_frame_equal(order_book, orders_flat_df)
 
-
 @responses.activate
 @time_machine.travel(TEST_TIME)
-def test_download_orders(tmp_path):
+@patch('src.app.boto3.client')
+def test_lambda_handler(mock_boto3_client, monkeypatch):
     setup_head_mock()
     setup_pagination_mocks(total_pages=3)
-    test_file = tmp_path / "test_orders.parquet"
-    download_orders(region_id=REGION_ID, output_path=test_file)
-    assert test_file.exists()
+    
+    monkeypatch.setenv("RAW_DATA_BUCKET", "test-bucket")
+    mock_s3 = MagicMock()
+    mock_boto3_client.return_value = mock_s3
+    
+    event = {"region_id": REGION_ID}
+    response = lambda_handler(event, None)
+    
+    assert response['statusCode'] == 200
+    
+    mock_s3.put_object.assert_called_once()
+    call_kwargs = mock_s3.put_object.call_args[1]
+    
+    assert call_kwargs['Bucket'] == 'test-bucket'
+    assert f'raw/region_id={REGION_ID}' in call_kwargs['Key']
+    assert isinstance(call_kwargs['Body'], bytes)

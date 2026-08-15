@@ -1,0 +1,15 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "eve-market-data-lake"
+resolve_s3 = true
+s3_prefix = "eve-market-data-lake"
+region = "ap-northeast-1"
+profile = "sandbox-admin"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+disable_rollback = true
+image_repositories = []
+
+[default.global.parameters]
+region = "ap-northeast-1"

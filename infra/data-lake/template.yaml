@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Eve Online Market Dash - Core Data Lake Infrastructure
+
+Resources:
+  BronzeMarketDataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "eve-market-bronze-${AWS::AccountId}-${AWS::Region}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  BronzeBucketNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /eve-market/infra/bronze-bucket-name
+      Type: String
+      Value: !Ref BronzeMarketDataBucket
+      Description: Name of the Bronze tier S3 bucket

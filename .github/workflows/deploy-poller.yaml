@@ -51,22 +51,6 @@ jobs:
         with:
           use-installer: true
 
-      - name: Debug OIDC Token Payload
-        uses: actions/github-script@v7
-        with:
-          script: |
-            // Request the token exactly like AWS does
-            const token = await core.getIDToken('sts.amazonaws.com');
-            
-            // A JWT has 3 parts separated by dots. The payload is the middle part.
-            const payload = token.split('.')[1];
-            
-            // Decode the base64 payload into readable JSON
-            const decoded = Buffer.from(payload, 'base64').toString('utf-8');
-            
-            console.log("=== EXACT PAYLOAD SENT TO AWS ===");
-            console.log(JSON.parse(decoded)); 
-            
       - name: Assume AWS OIDC Role
         uses: aws-actions/configure-aws-credentials@v4
         with:

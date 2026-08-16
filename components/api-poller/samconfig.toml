@@ -22,6 +22,7 @@ parameter_overrides = "BronzeBucketName=\"/eve-market/infra/bronze-bucket-name\"
 image_repositories = []
 # Replace these with your actual CloudFormation outputs:
 s3_bucket = "aws-sam-cli-managed-prod-pipeline--artifactsbucket-0zuhxq4a9m0t"
+s3_prefix = "eve-market-api-poller"
 role_arn = "arn:aws:iam::246814138413:role/aws-sam-cli-managed-prod--CloudFormationExecutionRo-1rqGfyMBHOvQ"
 
 [default.global.parameters]

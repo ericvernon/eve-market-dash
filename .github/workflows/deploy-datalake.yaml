@@ -1,0 +1,43 @@
+name: Deploy Data Lake to Prod
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/data-lake/**'
+      - '.github/workflows/deploy-datalake.yaml'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    environment: production
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/data-lake
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set up AWS SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: Assume AWS OIDC Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # Using the exact role we fixed earlier
+          role-to-assume: arn:aws:iam::246814138413:role/aws-sam-cli-managed-prod-pipe-PipelineExecutionRole-ATQOgMHPR7WL
+          aws-region: ap-northeast-1
+
+      - name: Build SAM application
+        run: sam build
+
+      - name: Deploy SAM application
+        run: sam deploy --config-env prod --no-confirm-changeset --no-fail-on-empty-changeset

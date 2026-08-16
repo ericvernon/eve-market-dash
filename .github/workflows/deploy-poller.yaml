@@ -5,24 +5,20 @@ on:
     branches:
       - main
     paths:
-      # Only trigger this pipeline if files in the poller folder or this yaml change
       - 'components/api-poller/**'
       - '.github/workflows/deploy-poller.yaml'
 
-# CRITICAL: These permissions are required for the OIDC trust handshake to work
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  build-and-deploy:
+  # 1. TEST JOB: Runs immediately, no approval required
+  test:
     runs-on: ubuntu-latest
-    environment: production
-    # Tell the GitHub runner to execute all commands inside our microservice folder
     defaults:
       run:
         working-directory: components/api-poller
-
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -35,8 +31,20 @@ jobs:
       - name: Install dependencies and run tests
         run: |
           pip install -r src/requirements.txt
-          pip install pytest responses time-machine polars
+          pip install boto3 pytest responses time-machine polars
           python -m pytest test/
+
+  # 2. DEPLOY JOB: Waits for tests, then requires manual approval
+  deploy:
+    needs: test                     # <--- Forces this job to wait for the test job to pass
+    environment: production         # <--- Pauses here for your manual click
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: components/api-poller
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
 
       - name: Set up AWS SAM CLI
         uses: aws-actions/setup-sam@v2
@@ -46,7 +54,6 @@ jobs:
       - name: Assume AWS OIDC Role
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          # Replace this with the full ARN from your AWS Console
           role-to-assume: arn:aws:iam::246814138413:role/aws-sam-cli-managed-prod-pipe-PipelineExecutionRole-ATQOgMHPR7WL
           aws-region: ap-northeast-1
 
@@ -54,5 +61,4 @@ jobs:
         run: sam build --use-container
 
       - name: Deploy SAM application
-        # --no-confirm-changeset overrides the true value in your samconfig.toml so the pipeline doesn't hang waiting for user input
         run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset

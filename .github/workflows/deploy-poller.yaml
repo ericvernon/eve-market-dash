@@ -30,8 +30,7 @@ jobs:
 
       - name: Install dependencies and run tests
         run: |
-          pip install -r src/requirements.txt
-          pip install boto3 pytest responses time-machine polars
+          pip install -r requirements-dev.txt
           python -m pytest test/
 
   # 2. DEPLOY JOB: Waits for tests, then requires manual approval

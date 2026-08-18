@@ -1,0 +1,5 @@
+ -r src/requirements.txt
+responses
+time-machine
+pytest
+boto3

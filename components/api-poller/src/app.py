@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from pathlib import Path
+import json
 import os
 import io
 
@@ -55,8 +56,13 @@ def poll_order_book(region_id: str, options: dict) -> pl.DataFrame:
 
 def lambda_handler(event, context):
     # 1. Configuration
-    # We can pass the region in via the EventBridge trigger, falling back to Venal
-    region_id = event.get('region_id', '10000015') 
+    # Support SQS trigger (EventBridge → SQS → Lambda) as well as direct invocation.
+    # When triggered via SQS, the payload is in event['Records'][0]['body'] as a JSON string.
+    if 'Records' in event:
+        body = json.loads(event['Records'][0]['body'])
+        region_id = body.get('region_id', '10000015')
+    else:
+        region_id = event.get('region_id', '10000015')
     bucket_name = os.environ.get("RAW_DATA_BUCKET")
     
     if not bucket_name:

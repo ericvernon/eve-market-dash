@@ -8,6 +8,49 @@ Parameters:
     Default: /eve-market/infra/bronze-bucket-name
 
 Resources:
+  ApiPollerDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: eve-market-api-poller-dlq
+      MessageRetentionPeriod: 1209600  # 14 days
+
+  ApiPollerQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: eve-market-api-poller-queue
+      VisibilityTimeout: 180  # 3x the Lambda timeout
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ApiPollerDeadLetterQueue.Arn
+        maxReceiveCount: 3
+
+  ApiPollerQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref ApiPollerQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt ApiPollerQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt ApiPollerScheduleRule.Arn
+
+  ApiPollerScheduleRule:
+    Type: AWS::Events::Rule
+    Properties:
+      # Runs every hour, sending the Venal region ID to the SQS queue
+      ScheduleExpression: rate(1 hour)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt ApiPollerQueue.Arn
+          Id: ApiPollerQueueTarget
+          Input: '{"region_id": "10000015"}'
+
   ApiPollerFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -22,11 +65,11 @@ Resources:
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref BronzeBucketName
+        - SQSPollerPolicy:
+            QueueName: !GetAtt ApiPollerQueue.QueueName
       Events:
-        PollerSchedule:
-          Type: Schedule
+        ApiPollerQueueEvent:
+          Type: SQS
           Properties:
-            # Runs every hour, passing the Venal region ID to the event payload
-            Schedule: rate(1 hour)
-            Enabled: true
-            Input: '{"region_id": "10000015"}'
+            Queue: !GetAtt ApiPollerQueue.Arn
+            BatchSize: 1

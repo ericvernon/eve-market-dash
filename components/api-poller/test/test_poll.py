@@ -1,5 +1,6 @@
 import datetime
 import itertools
+import json
 
 import pytest
 import time_machine
@@ -211,6 +212,36 @@ def test_lambda_handler(mock_boto3_client, monkeypatch):
     mock_s3.put_object.assert_called_once()
     call_kwargs = mock_s3.put_object.call_args[1]
     
+    assert call_kwargs['Bucket'] == 'test-bucket'
+    assert f'raw/region_id={REGION_ID}' in call_kwargs['Key']
+    assert isinstance(call_kwargs['Body'], bytes)
+
+
+@responses.activate
+@time_machine.travel(TEST_TIME)
+@patch('src.app.boto3.client')
+def test_lambda_handler_sqs_event(mock_boto3_client, monkeypatch):
+    setup_head_mock()
+    setup_pagination_mocks(total_pages=3)
+
+    monkeypatch.setenv("RAW_DATA_BUCKET", "test-bucket")
+    mock_s3 = MagicMock()
+    mock_boto3_client.return_value = mock_s3
+
+    sqs_event = {
+        "Records": [
+            {
+                "body": json.dumps({"region_id": REGION_ID})
+            }
+        ]
+    }
+    response = lambda_handler(sqs_event, None)
+
+    assert response['statusCode'] == 200
+
+    mock_s3.put_object.assert_called_once()
+    call_kwargs = mock_s3.put_object.call_args[1]
+
     assert call_kwargs['Bucket'] == 'test-bucket'
     assert f'raw/region_id={REGION_ID}' in call_kwargs['Key']
     assert isinstance(call_kwargs['Body'], bytes)

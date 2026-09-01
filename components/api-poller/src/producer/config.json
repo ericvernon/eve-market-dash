@@ -1,0 +1,12 @@
+{
+    "regions": [
+        {
+            "region_id": "10000015",
+            "region_name": "The Forge"
+        },
+        {
+            "region_id": "19000001",
+            "region_name": "Global"
+        }
+    ]
+}

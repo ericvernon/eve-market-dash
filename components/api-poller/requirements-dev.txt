@@ -1,4 +1,5 @@
- -r src/requirements.txt
+-r src/consumer/requirements.txt
+-r src/producer/requirements.txt
 responses
 time-machine
 pytest

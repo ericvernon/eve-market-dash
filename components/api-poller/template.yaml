@@ -23,38 +23,30 @@ Resources:
         deadLetterTargetArn: !GetAtt ApiPollerDeadLetterQueue.Arn
         maxReceiveCount: 3
 
-  ApiPollerQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !Ref ApiPollerQueue
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: events.amazonaws.com
-            Action: sqs:SendMessage
-            Resource: !GetAtt ApiPollerQueue.Arn
-            Condition:
-              ArnEquals:
-                aws:SourceArn: !GetAtt ApiPollerScheduleRule.Arn
-
-  ApiPollerScheduleRule:
-    Type: AWS::Events::Rule
-    Properties:
-      # Runs every hour, sending the Venal region ID to the SQS queue
-      ScheduleExpression: rate(1 hour)
-      State: ENABLED
-      Targets:
-        - Arn: !GetAtt ApiPollerQueue.Arn
-          Id: ApiPollerQueueTarget
-          Input: '{"region_id": "10000015"}'
-
-  ApiPollerFunction:
+  ProducerFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/
+      CodeUri: src/producer
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Timeout: 30
+      MemorySize: 128  # Minimum
+      Events:
+        ApiPollerScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 hour)
+      Environment:
+        Variables:
+          QUEUE_URL: !Ref ApiPollerQueue
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt ApiPollerQueue.QueueName
+
+  ConsumerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/consumer
       Handler: app.lambda_handler
       Runtime: python3.12
       Timeout: 60

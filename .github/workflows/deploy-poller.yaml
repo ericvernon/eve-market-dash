@@ -13,7 +13,6 @@ permissions:
   contents: read
 
 jobs:
-  # 1. TEST JOB: Runs immediately, no approval required
   test:
     runs-on: ubuntu-latest
     defaults:
@@ -33,10 +32,9 @@ jobs:
           pip install -r requirements-dev.txt
           python -m pytest test/
 
-  # 2. DEPLOY JOB: Waits for tests, then requires manual approval
   deploy:
-    needs: test                     # <--- Forces this job to wait for the test job to pass
-    environment: production         # <--- Pauses here for your manual click
+    needs: test
+    environment: production
     runs-on: ubuntu-latest
     defaults:
       run:

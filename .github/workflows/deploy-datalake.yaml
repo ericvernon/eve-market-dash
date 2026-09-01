@@ -32,7 +32,6 @@ jobs:
       - name: Assume AWS OIDC Role
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          # Using the exact role we fixed earlier
           role-to-assume: arn:aws:iam::246814138413:role/aws-sam-cli-managed-prod-pipe-PipelineExecutionRole-ATQOgMHPR7WL
           aws-region: ap-northeast-1
 
